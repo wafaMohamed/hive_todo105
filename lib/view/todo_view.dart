@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
+import '../model/todo_model.dart';
+import '../view_model/todo_view_model.dart';
 
 class TodoListScreen extends StatelessWidget {
   final TextEditingController _controller = TextEditingController();
@@ -8,6 +11,8 @@ class TodoListScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final todoViewModel = Provider.of<TodoViewModel>(context);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Todo App'),
@@ -26,34 +31,52 @@ class TodoListScreen extends StatelessWidget {
             ),
           ),
           ElevatedButton(
-            onPressed: () {},
+            onPressed: () {
+              if (_controller.text.isNotEmpty) {
+                todoViewModel.addTodo(_controller.text);
+                _controller.clear();
+              }
+            },
             child: const Text('Add Todo'),
           ),
           Expanded(
-            child: ListView.builder(
-              itemCount: 2,
-              itemBuilder: (context, index) {
-                return ListTile(
-                  title: Text(
-                    "title",
-                    style: TextStyle(
-                      decoration: TextDecoration.lineThrough,
-                    ),
-                  ),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.edit),
-                        onPressed: () {},
+            child: Consumer<TodoViewModel>(
+              builder: (context, todoViewModel, child) {
+                return ListView.builder(
+                  itemCount: todoViewModel.todos.length,
+                  itemBuilder: (context, index) {
+                    final todo = todoViewModel.todos[index];
+                    return ListTile(
+                      title: Text(
+                        todo.title,
+                        style: TextStyle(
+                          decoration: todo.isCompleted
+                              ? TextDecoration.lineThrough
+                              : null,
+                        ),
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.delete),
-                        onPressed: () {},
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit),
+                            onPressed: () {
+                              _editTodoDialog(context, todoViewModel, todo, index);
+                            },
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete),
+                            onPressed: () {
+                              todoViewModel.deleteTodo(index);
+                            },
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                  onTap: () {},
+                      onTap: () {
+                        todoViewModel.toggleTodoCompletion(index);
+                      },
+                    );
+                  },
                 );
               },
             ),
@@ -64,7 +87,8 @@ class TodoListScreen extends StatelessWidget {
   }
 
   // Edit Todo Dialog
-  void _editTodoDialog(BuildContext context) {
+  void _editTodoDialog(BuildContext context, TodoViewModel todoViewModel, Todo todo, int index) {
+    _controller.text = todo.title;
     showDialog(
       context: context,
       builder: (context) {
@@ -76,7 +100,13 @@ class TodoListScreen extends StatelessWidget {
           ),
           actions: [
             ElevatedButton(
-              onPressed: () {},
+              onPressed: () {
+                if (_controller.text.isNotEmpty) {
+                  todoViewModel.updateTodo(index, _controller.text, todo.isCompleted);
+                  _controller.clear();
+                  Navigator.of(context).pop();
+                }
+              },
               child: const Text('Update'),
             ),
           ],
